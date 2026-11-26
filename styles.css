@@ -91,6 +91,71 @@ td input.orc { width: 130px; text-align: right; }
 .cab-lista h2 { margin: 0; }
 .vazio, .dica { color: var(--suave); font-size: .9rem; }
 
+/* Transferências e seleção */
+.neutro { color: var(--suave); }
+.perigo-cheio { background: var(--neg); color: #fff; border-color: var(--neg); }
+.cab-lista button { white-space: nowrap; }
+.tab-lanc input[type=checkbox], #selTodos { width: 18px; height: 18px; }
+.sel-linha { display: flex; gap: 6px; flex-wrap: wrap; }
+.sel-linha select { flex: 1; min-width: 120px; }
+
+/* Contas */
+.contas-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.contas-grade .painel-box { margin-bottom: 0; display: flex; flex-direction: column; gap: 8px; }
+.conta-card.aberta { border-color: var(--primaria); box-shadow: 0 0 0 1px var(--primaria); }
+.conta-card small { color: var(--suave); }
+.conta-saldo { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.linha-saldo { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--borda); font-size: .92rem; }
+.linha-saldo small { color: var(--suave); display: block; font-size: .78rem; }
+.linha-saldo strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.linha-saldo.total { border-bottom: none; font-weight: 700; }
+.saldo-linha td { font-weight: 600; background: var(--fundo); }
+td small.sub { display: block; color: var(--suave); font-size: .78rem; margin-top: 2px; }
+.linha-conta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; font-weight: 600; }
+.linha-conta select { min-width: 200px; }
+
+/* Cartão de crédito e faturas */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; color: #fff; }
+.st-aberta { background: var(--primaria); }
+.st-fechada { background: var(--alerta); }
+.st-parcial { background: var(--alerta); }
+.st-vencida { background: var(--neg); }
+.st-paga { background: var(--pos); }
+.fatura-resumo { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+.fatura-cab { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;
+  padding: 14px; border: 1px solid var(--borda); border-radius: 10px; background: var(--fundo); }
+.fatura-cab h3 { margin: 6px 0 2px; font-size: 1.1rem; }
+.fatura-cab small { color: var(--suave); }
+.fatura-valores { display: flex; gap: 18px; flex-wrap: wrap; font-size: .85rem; color: var(--suave); }
+.fatura-valores b { display: block; font-size: 1.1rem; color: var(--texto); font-variant-numeric: tabular-nums; }
+.fatura-valores b.pos { color: var(--pos); }
+.fatura-valores b.neg { color: var(--neg); }
+#formPagamento { border: 1px solid var(--borda); border-radius: 10px; padding: 14px; }
+.cartao-info { font-size: .85rem; color: var(--suave); display: flex; flex-direction: column; gap: 2px; }
+.aviso { color: var(--alerta); font-weight: 600; }
+p.aviso { margin: 0; }
+
+/* Janela de confirmação */
+dialog {
+  border: 1px solid var(--borda); border-radius: 12px; padding: 20px;
+  background: var(--caixa); color: var(--texto);
+  width: calc(100% - 32px); max-width: 400px;
+}
+dialog::backdrop { background: rgba(0, 0, 0, .45); }
+dialog p { margin: 0 0 16px; white-space: pre-line; line-height: 1.4; }
+dialog .acoes { justify-content: flex-end; }
+
+/* Importação OFX */
+#previaOfx { margin-top: 12px; }
+#resumoOfx { margin: 0 0 10px; font-size: .92rem; }
+.tabela-ofx td { vertical-align: top; }
+.tabela-ofx td div { margin-bottom: 6px; word-break: break-word; }
+.tabela-ofx select { padding: 4px 6px; font-size: .85rem; }
+.tabela-ofx tr.dup { opacity: .6; }
+.tabela-ofx .aviso { color: var(--alerta); font-weight: 600; }
+.tabela-ofx input[type=checkbox], #ofxTodos { width: 18px; height: 18px; }
+.tabela-ofx + .acoes { margin-top: 12px; }
+
 /* Barras de categoria */
 .cat-linha { margin-bottom: 12px; }
 .cat-topo { display: flex; justify-content: space-between; font-size: .9rem; margin-bottom: 4px; }
@@ -127,7 +192,7 @@ td input.orc { width: 130px; text-align: right; }
   .topo { padding: 12px; padding-top: max(12px, env(safe-area-inset-top)); }
   .topo h1 { font-size: 1.1rem; }
   .abas { padding: 0 4px; }
-  .aba { flex: 1; padding: 12px 4px; font-size: .85rem; }
+  .aba { flex: 1; padding: 12px 3px; font-size: .78rem; }
   input, select, button { font-size: 16px; } /* evita zoom automático no iPhone */
   .form label, .form label.cresce { flex: 1 1 100%; min-width: 0; }
   .form .linha { gap: 10px; }
@@ -136,5 +201,16 @@ td input.orc { width: 130px; text-align: right; }
   .card strong { font-size: 1.15rem; }
   .grade { grid-template-columns: 1fr; }
   .cab-lista { flex-direction: column; align-items: stretch; }
-  th:nth-child(3), td:nth-child(3) { display: none; }
+  .tab-lanc th:nth-child(4), .tab-lanc td:nth-child(4) { display: none; }
+  .tabela-ofx select { width: 100%; }
+  .tab-extrato { font-size: .8rem; }
+  .tab-extrato td:nth-child(2) { word-break: break-word; }
+  .tab-extrato .mini, .tab-lanc .mini { display: block; padding: 2px 4px; }
+  .conta-saldo { font-size: 1.35rem; }
+  .painel-box { padding: 14px; }
+  table { font-size: .85rem; }
+  th, td { padding: 8px 4px; }
+  td.dir { white-space: nowrap; }
+  th:first-child, td:first-child { padding-left: 0; }
+  th:last-child, td:last-child { padding-right: 0; }
 }

@@ -1,6 +1,6 @@
 // Service worker: guarda os arquivos do app para funcionar offline.
 // Ao alterar qualquer arquivo do app, aumente a versão abaixo para os celulares baixarem a atualização.
-const VERSAO = 'financas-v2';
+const VERSAO = 'financas-v6';
 const ARQUIVOS = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.json',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 

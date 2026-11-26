@@ -25,6 +25,7 @@
 
   <nav class="abas">
     <button class="aba ativa" data-aba="painel">Painel</button>
+    <button class="aba" data-aba="contas">Contas</button>
     <button class="aba" data-aba="lancamentos">Lançamentos</button>
     <button class="aba" data-aba="orcamento">Orçamento</button>
     <button class="aba" data-aba="metas">Metas</button>
@@ -38,9 +39,14 @@
         <div class="card"><span>Receitas do mês</span><strong id="cReceitas" class="pos">R$ 0,00</strong></div>
         <div class="card"><span>Despesas do mês</span><strong id="cDespesas" class="neg">R$ 0,00</strong></div>
         <div class="card"><span>Saldo do mês</span><strong id="cSaldoMes">R$ 0,00</strong></div>
-        <div class="card"><span>Saldo acumulado</span><strong id="cSaldoTotal">R$ 0,00</strong></div>
+        <div class="card" title="Soma dos saldos de todas as contas no fim do mês"><span>Saldo total das contas</span><strong id="cSaldoTotal">R$ 0,00</strong></div>
+        <div class="card" title="Aplicações menos resgates no mês (não entra em receitas/despesas)"><span>Investido no mês</span><strong id="cInvestido">R$ 0,00</strong></div>
       </div>
       <div class="grade">
+        <div class="painel-box">
+          <h2>Saldos por conta</h2>
+          <div id="listaSaldos"></div>
+        </div>
         <div class="painel-box">
           <h2>Gastos por categoria × orçamento</h2>
           <div id="listaCategorias"></div>
@@ -53,8 +59,80 @@
       </div>
     </section>
 
+    <!-- CONTAS -->
+    <section id="contas" class="secao">
+      <form id="formConta" class="painel-box form">
+        <h2 id="tituloConta">Nova conta</h2>
+        <input type="hidden" id="ctId">
+        <div class="linha">
+          <label class="cresce">Nome <input type="text" id="ctNome" required placeholder="Ex.: Itaú corrente, Nubank cartão, Tesouro"></label>
+          <label>Tipo
+            <select id="ctTipo">
+              <option value="corrente">Conta corrente</option>
+              <option value="poupanca">Poupança</option>
+              <option value="investimento">Investimento</option>
+              <option value="cartao">Cartão de crédito</option>
+              <option value="dinheiro">Dinheiro / carteira</option>
+              <option value="outra">Outra</option>
+            </select>
+          </label>
+          <label title="Saldo da conta antes do primeiro lançamento registrado no app">Saldo inicial (R$)
+            <input type="number" id="ctSaldo" step="0.01" value="0">
+          </label>
+        </div>
+        <div id="ctCartaoBox" class="linha oculto">
+          <label>Limite (R$) <input type="number" id="ctLimite" step="0.01" min="0" placeholder="Ex.: 5000"></label>
+          <label title="Compras a partir deste dia entram na fatura seguinte">Dia de fechamento <input type="number" id="ctFech" min="1" max="31" placeholder="Ex.: 3"></label>
+          <label>Dia de vencimento <input type="number" id="ctVenc" min="1" max="31" placeholder="Ex.: 10"></label>
+          <label>Pagar a fatura com <select id="ctPagto"></select></label>
+        </div>
+        <p class="dica" id="ctDicaCartao">Cartão de crédito: use saldo inicial negativo se já houver valor devido antes do primeiro lançamento.</p>
+        <div class="acoes">
+          <button type="submit" class="primario">Salvar conta</button>
+          <button type="button" id="ctCancelar" class="oculto">Cancelar edição</button>
+        </div>
+      </form>
+
+      <div id="listaContas" class="contas-grade"></div>
+
+      <div id="extratoConta" class="painel-box oculto">
+        <div class="cab-lista">
+          <h2 id="tituloExtrato"></h2>
+          <div class="acoes">
+            <button id="alternarModo" class="oculto"></button>
+            <button id="fecharExtrato">Fechar</button>
+          </div>
+        </div>
+        <div id="faturaConta"></div>
+        <table class="tab-extrato" id="tabExtrato">
+          <thead><tr><th>Data</th><th>Descrição</th><th class="dir">Valor</th><th class="dir">Saldo</th><th></th></tr></thead>
+          <tbody id="tabelaExtrato"></tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- LANÇAMENTOS -->
     <section id="lancamentos" class="secao">
+      <div class="painel-box">
+        <div class="cab-lista">
+          <h2>Importar extrato bancário (OFX)</h2>
+          <label class="botao primario">Escolher arquivo OFX<input type="file" id="arqOfx" hidden></label>
+        </div>
+        <p class="dica">Baixe o extrato no app ou site do seu banco no formato <b>OFX</b> (às vezes chamado de "Money"). Você revisa tudo antes de importar.</p>
+        <div id="previaOfx" class="oculto">
+          <label class="linha-conta">Importar na conta: <select id="ofxConta"></select></label>
+          <p id="resumoOfx"></p>
+          <table class="tabela-ofx">
+            <thead><tr><th><input type="checkbox" id="ofxTodos" title="Marcar/desmarcar todos"></th><th>Data</th><th>Descrição / Tipo / Categoria</th><th class="dir">Valor</th></tr></thead>
+            <tbody id="tabelaOfx"></tbody>
+          </table>
+          <div class="acoes">
+            <button id="ofxImportar" class="primario">Importar selecionados</button>
+            <button id="ofxCancelar">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
       <form id="formLanc" class="painel-box form">
         <h2 id="tituloForm">Novo lançamento</h2>
         <input type="hidden" id="lId">
@@ -63,6 +141,13 @@
             <select id="lTipo">
               <option value="despesa">Despesa</option>
               <option value="receita">Receita</option>
+              <option value="transferencia">Transferência / Investimento</option>
+            </select>
+          </label>
+          <label id="lSentidoBox" class="oculto" title="Transferências não entram nos totais de receitas e despesas">Sentido
+            <select id="lSentido">
+              <option value="saida">Saída da conta (aplicação, pagamento)</option>
+              <option value="entrada">Entrada na conta (resgate)</option>
             </select>
           </label>
           <label>Data <input type="date" id="lData" required></label>
@@ -71,7 +156,11 @@
         <div class="linha">
           <label class="cresce">Descrição <input type="text" id="lDesc" required placeholder="Ex.: Supermercado"></label>
           <label>Categoria <select id="lCat"></select></label>
-          <label title="Cria o mesmo lançamento nos meses seguintes">Repetir por (meses)
+          <label>Conta <select id="lConta"></select></label>
+          <label id="lContraBox" class="oculto" title="Conta do outro lado da transferência. Se escolher uma, o saldo dela também é atualizado.">Outra conta envolvida
+            <select id="lContra"></select>
+          </label>
+          <label id="lRepetirBox" title="Cria o mesmo lançamento nos meses seguintes"><span id="lRepetirTxt">Repetir por (meses)</span>
             <input type="number" id="lRepetir" min="1" max="60" value="1">
           </label>
         </div>
@@ -84,10 +173,12 @@
       <div class="painel-box">
         <div class="cab-lista">
           <h2>Lançamentos do mês</h2>
+          <button id="excluirSel" class="perigo oculto">Excluir selecionados</button>
+          <select id="filtroConta"></select>
           <input type="search" id="filtro" placeholder="Filtrar...">
         </div>
-        <table>
-          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="dir">Valor</th><th></th></tr></thead>
+        <table class="tab-lanc">
+          <thead><tr><th><input type="checkbox" id="selTodos" title="Selecionar todos"></th><th>Data</th><th>Descrição</th><th>Categoria</th><th class="dir">Valor</th><th></th></tr></thead>
           <tbody id="tabelaLanc"></tbody>
         </table>
         <p id="semLanc" class="vazio">Nenhum lançamento neste mês.</p>
@@ -117,6 +208,12 @@
             <h3>Receitas</h3>
             <ul id="catsReceita" class="tags"></ul>
             <form class="add-cat" data-tipo="receita"><input placeholder="Nova categoria" required><button>+</button></form>
+          </div>
+          <div>
+            <h3>Transferências / Investimentos</h3>
+            <p class="dica">Movimentações entre contas e aplicações: não contam como receita nem despesa.</p>
+            <ul id="catsTransferencia" class="tags"></ul>
+            <form class="add-cat" data-tipo="transferencia"><input placeholder="Nova categoria" required><button>+</button></form>
           </div>
         </div>
       </div>
@@ -150,6 +247,14 @@
       </div>
     </section>
   </main>
+
+  <dialog id="dialogo">
+    <p id="dlgMsg"></p>
+    <div class="acoes">
+      <button id="dlgCancelar" type="button">Cancelar</button>
+      <button id="dlgOk" type="button" class="primario">OK</button>
+    </div>
+  </dialog>
 
   <script src="app.js"></script>
 </body>

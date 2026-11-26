@@ -37,7 +37,29 @@ Pronto: o ícone **R$** aparece na tela inicial.
 - Faça backup de vez em quando (ex.: salve o JSON no Google Drive/iCloud).
 - Se desinstalar o app ou limpar os dados do navegador, os lançamentos são apagados.
 
-## 4. Atualizar o app depois de mudanças
+## 4. Rotina de uso
+
+**Escolha UM aparelho principal** (de preferência o celular). Os dados não sincronizam sozinhos entre
+celular e computador — se usar os dois, leve os dados com *Dados → Exportar backup* e *Importar backup*.
+
+**Configuração inicial (uma vez):**
+1. *Contas* → edite a "Conta principal" (nome do banco e saldo inicial) e cadastre as demais:
+   outras contas, investimentos e cartões (com limite, fechamento e vencimento).
+2. *Orçamento* → defina o limite mensal de cada categoria de despesa.
+3. *Metas* → cadastre seus objetivos.
+
+**Toda semana (10 minutos):**
+1. Baixe o OFX de cada conta e cartão no app do banco.
+2. *Lançamentos → Escolher arquivo OFX* → confira a conta, os tipos e as categorias → *Importar*.
+3. Lance à mão o que não vem no extrato (dinheiro, Pix de terceiros etc.).
+
+**Todo mês:**
+1. *Contas → Faturas* de cada cartão → *Pagar fatura* (se não veio pelo OFX da conta corrente).
+2. *Painel* → compare gastos × orçamento e ajuste o mês seguinte.
+3. Confira se o saldo de cada conta no app bate com o do banco.
+4. *Dados → Exportar backup* e guarde o arquivo (Google Drive, e-mail etc.).
+
+## 5. Atualizar o app depois de mudanças
 
 1. Em `sw.js`, aumente a versão (ex.: `financas-v2` → `financas-v3`).
 2. Envie os arquivos alterados ao GitHub (Add file → Upload files).
