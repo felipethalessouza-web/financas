@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle Financeiro</title>
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Finanças">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topo">
+    <h1>💰 Controle Financeiro</h1>
+    <div class="mes-nav">
+      <button id="mesAnterior" title="Mês anterior">‹</button>
+      <input type="month" id="mesAtual">
+      <button id="mesSeguinte" title="Próximo mês">›</button>
+    </div>
+  </header>
+
+  <nav class="abas">
+    <button class="aba ativa" data-aba="painel">Painel</button>
+    <button class="aba" data-aba="lancamentos">Lançamentos</button>
+    <button class="aba" data-aba="orcamento">Orçamento</button>
+    <button class="aba" data-aba="metas">Metas</button>
+    <button class="aba" data-aba="config">Dados</button>
+  </nav>
+
+  <main>
+    <!-- PAINEL -->
+    <section id="painel" class="secao ativa">
+      <div class="cards">
+        <div class="card"><span>Receitas do mês</span><strong id="cReceitas" class="pos">R$ 0,00</strong></div>
+        <div class="card"><span>Despesas do mês</span><strong id="cDespesas" class="neg">R$ 0,00</strong></div>
+        <div class="card"><span>Saldo do mês</span><strong id="cSaldoMes">R$ 0,00</strong></div>
+        <div class="card"><span>Saldo acumulado</span><strong id="cSaldoTotal">R$ 0,00</strong></div>
+      </div>
+      <div class="grade">
+        <div class="painel-box">
+          <h2>Gastos por categoria × orçamento</h2>
+          <div id="listaCategorias"></div>
+        </div>
+        <div class="painel-box">
+          <h2>Últimos 6 meses</h2>
+          <div id="grafico"></div>
+          <div class="legenda"><span class="leg pos-bg"></span>Receitas <span class="leg neg-bg"></span>Despesas</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LANÇAMENTOS -->
+    <section id="lancamentos" class="secao">
+      <form id="formLanc" class="painel-box form">
+        <h2 id="tituloForm">Novo lançamento</h2>
+        <input type="hidden" id="lId">
+        <div class="linha">
+          <label>Tipo
+            <select id="lTipo">
+              <option value="despesa">Despesa</option>
+              <option value="receita">Receita</option>
+            </select>
+          </label>
+          <label>Data <input type="date" id="lData" required></label>
+          <label>Valor (R$) <input type="number" id="lValor" step="0.01" min="0.01" required></label>
+        </div>
+        <div class="linha">
+          <label class="cresce">Descrição <input type="text" id="lDesc" required placeholder="Ex.: Supermercado"></label>
+          <label>Categoria <select id="lCat"></select></label>
+          <label title="Cria o mesmo lançamento nos meses seguintes">Repetir por (meses)
+            <input type="number" id="lRepetir" min="1" max="60" value="1">
+          </label>
+        </div>
+        <div class="acoes">
+          <button type="submit" class="primario">Salvar</button>
+          <button type="button" id="cancelarEdicao" class="oculto">Cancelar edição</button>
+        </div>
+      </form>
+
+      <div class="painel-box">
+        <div class="cab-lista">
+          <h2>Lançamentos do mês</h2>
+          <input type="search" id="filtro" placeholder="Filtrar...">
+        </div>
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="dir">Valor</th><th></th></tr></thead>
+          <tbody id="tabelaLanc"></tbody>
+        </table>
+        <p id="semLanc" class="vazio">Nenhum lançamento neste mês.</p>
+      </div>
+    </section>
+
+    <!-- ORÇAMENTO -->
+    <section id="orcamento" class="secao">
+      <div class="painel-box">
+        <h2>Orçamento mensal por categoria</h2>
+        <p class="dica">Defina quanto pretende gastar por mês em cada categoria. O valor vale para todos os meses.</p>
+        <table>
+          <thead><tr><th>Categoria</th><th class="dir">Limite mensal</th><th class="dir">Gasto no mês</th><th class="dir">Restante</th></tr></thead>
+          <tbody id="tabelaOrc"></tbody>
+          <tfoot><tr><th>Total</th><th class="dir" id="orcTotal"></th><th class="dir" id="orcGasto"></th><th class="dir" id="orcResta"></th></tr></tfoot>
+        </table>
+      </div>
+      <div class="painel-box">
+        <h2>Categorias</h2>
+        <div class="grade">
+          <div>
+            <h3>Despesas</h3>
+            <ul id="catsDespesa" class="tags"></ul>
+            <form class="add-cat" data-tipo="despesa"><input placeholder="Nova categoria" required><button>+</button></form>
+          </div>
+          <div>
+            <h3>Receitas</h3>
+            <ul id="catsReceita" class="tags"></ul>
+            <form class="add-cat" data-tipo="receita"><input placeholder="Nova categoria" required><button>+</button></form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- METAS -->
+    <section id="metas" class="secao">
+      <form id="formMeta" class="painel-box form">
+        <h2>Nova meta</h2>
+        <div class="linha">
+          <label class="cresce">Nome <input type="text" id="mNome" required placeholder="Ex.: Reserva de emergência"></label>
+          <label>Valor alvo (R$) <input type="number" id="mAlvo" step="0.01" min="0.01" required></label>
+          <label>Prazo <input type="month" id="mPrazo"></label>
+        </div>
+        <div class="acoes"><button type="submit" class="primario">Adicionar meta</button></div>
+      </form>
+      <div id="listaMetas"></div>
+    </section>
+
+    <!-- DADOS -->
+    <section id="config" class="secao">
+      <div class="painel-box">
+        <h2>Backup dos dados</h2>
+        <p class="dica">Os dados ficam salvos apenas neste navegador. Faça backups periodicamente.</p>
+        <div class="acoes">
+          <button id="exportar" class="primario">Exportar backup (JSON)</button>
+          <button id="exportarCsv">Exportar lançamentos (CSV)</button>
+          <label class="botao">Importar backup<input type="file" id="importar" accept=".json" hidden></label>
+          <button id="apagarTudo" class="perigo">Apagar todos os dados</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
