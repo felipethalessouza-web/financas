@@ -12,6 +12,7 @@ const PADRAO = {
   },
   orcamentos: {},
   metas: [],
+  excluidos: [], // ids excluídos — para a mesclagem não "ressuscitar" o que foi apagado em outro aparelho
 };
 const TIPOS = { despesa: 'Despesa', receita: 'Receita', transferencia: 'Transf./Invest.' };
 const TIPOS_CONTA = {
@@ -33,6 +34,7 @@ function migrar(d) {
   if (!Array.isArray(base.contas) || !base.contas.length)
     base.contas = [{ id: 'principal', nome: 'Conta principal', tipo: 'corrente', saldoInicial: 0 }];
   const ids = new Set(base.contas.map(c => c.id));
+  if (!Array.isArray(base.excluidos)) base.excluidos = [];
   base.transacoes.forEach(t => {
     if (!ids.has(t.conta)) t.conta = base.contas[0].id;
     if (t.contraparte && (!ids.has(t.contraparte) || t.contraparte === t.conta)) delete t.contraparte;
@@ -45,6 +47,11 @@ function carregar() {
     if (salvo) return migrar(salvo);
   } catch (e) { /* ignora dados corrompidos */ }
   return migrar({});
+}
+function registrarExclusao(...ids) {
+  const s = new Set(dados.excluidos);
+  ids.forEach(i => s.add(i));
+  dados.excluidos = [...s];
 }
 function salvar() {
   try { localStorage.setItem(CHAVE, JSON.stringify(dados)); }
@@ -485,6 +492,7 @@ function registrarPagamento(c) {
   // registrado na conta que paga (sai dela e entra no cartão); sem conta, entra direto no cartão
   if (pagadora) Object.assign(t, { conta: pagadora, sentido: 'saida', contraparte: c.id });
   else Object.assign(t, { conta: c.id, sentido: 'entrada' });
+  t.modificado = Date.now();
   dados.transacoes.push(t);
   if (pagadora) c.contaPagamento = pagadora;
   salvar();
@@ -566,6 +574,7 @@ $('#listaContas').addEventListener('click', async e => {
       ? `Excluir a conta "${c.nome}" e ${n === 1 ? 'o lançamento dela' : `os ${n} lançamentos dela`}?\nEsta ação não pode ser desfeita.`
       : `Excluir a conta "${c.nome}"?`;
     if (!await perguntar(msg, 'Excluir', true)) return;
+    registrarExclusao(delconta, ...dados.transacoes.filter(t => t.conta === delconta).map(t => t.id));
     dados.transacoes = dados.transacoes.filter(t => t.conta !== delconta);
     dados.transacoes.forEach(t => { if (t.contraparte === delconta) delete t.contraparte; });
     dados.contas = dados.contas.filter(x => x.id !== delconta);
@@ -661,7 +670,7 @@ $('#formLanc').addEventListener('submit', e => {
   if (editId) {
     const t = dados.transacoes.find(t => t.id === editId);
     delete t.sentido; delete t.contraparte;
-    Object.assign(t, base);
+    Object.assign(t, base, { modificado: Date.now() });
   } else {
     const n = Math.max(1, parseInt($('#lRepetir').value) || 1);
     const parcelado = ehCompraParcelada() && n > 1;
@@ -673,7 +682,7 @@ $('#formLanc').addEventListener('submit', e => {
       const dia = Math.min(d, new Date(aa, mm, 0).getDate());
       // a última parcela absorve a diferença de centavos
       const valor = parcelado && i === n - 1 ? r2(base.valor - parcela * (n - 1)) : parcela;
-      dados.transacoes.push({ ...base, id: id(), valor, data: `${mes}-${String(dia).padStart(2, '0')}`,
+      dados.transacoes.push({ ...base, id: id(), modificado: Date.now(), valor, data: `${mes}-${String(dia).padStart(2, '0')}`,
         descricao: n > 1 ? `${base.descricao} (${i + 1}/${n})` : base.descricao });
     }
   }
@@ -724,6 +733,7 @@ async function excluirLanc(lid) {
   const t = dados.transacoes.find(t => t.id === lid);
   if (!t) return;
   if (await perguntar(`Excluir o lançamento "${t.descricao}" (${fmt(t.valor)})?`, 'Excluir', true)) {
+    registrarExclusao(lid);
     dados.transacoes = dados.transacoes.filter(x => x.id !== lid);
     selecionados.delete(lid);
     salvar();
@@ -754,6 +764,7 @@ $('#excluirSel').addEventListener('click', async () => {
   const n = selecionados.size;
   if (!n) return;
   if (await perguntar(`Excluir ${n} lançamento${n > 1 ? 's' : ''} selecionado${n > 1 ? 's' : ''}?\nEsta ação não pode ser desfeita.`, 'Excluir', true)) {
+    registrarExclusao(...selecionados);
     dados.transacoes = dados.transacoes.filter(t => !selecionados.has(t.id));
     selecionados.clear();
     salvar();
@@ -854,6 +865,7 @@ $('#listaMetas').addEventListener('click', async e => {
   const meta = dados.metas.find(m => m.id === mid);
   if (delmeta) {
     if (await perguntar(`Excluir a meta "${meta.nome}"?`, 'Excluir', true)) {
+      registrarExclusao(mid);
       dados.metas = dados.metas.filter(m => m.id !== mid);
       salvar();
     }
@@ -1111,6 +1123,7 @@ $('#ofxImportar').addEventListener('click', () => {
       if (t.contraparte && t.contraparte !== origem) novo.contraparte = t.contraparte;
     }
     if (t.fitid) novo.fitid = t.fitid;
+    novo.modificado = Date.now();
     dados.transacoes.push(novo);
   });
   // lembra o número da conta do OFX para escolher a conta automaticamente da próxima vez
@@ -1135,6 +1148,116 @@ function baixar(nome, conteudo, tipo) {
 }
 $('#exportar').addEventListener('click', () =>
   baixar(`financas-backup-${hojeISO()}.json`, JSON.stringify(dados, null, 2), 'application/json'));
+
+// ---------- sincronização manual: enviar e mesclar ----------
+async function compartilharBackup() {
+  const conteudo = JSON.stringify(dados);
+  const base = `financas-backup-${hojeISO()}`;
+  // alguns navegadores (ex.: Chrome Android) só compartilham certos tipos de arquivo: tenta .json, depois .txt
+  const opcoes = [new File([conteudo], base + '.json', { type: 'application/json' }),
+                  new File([conteudo], base + '.txt', { type: 'text/plain' })];
+  const arq = navigator.canShare && opcoes.find(f => navigator.canShare({ files: [f] }));
+  if (arq) {
+    try {
+      await navigator.share({ files: [arq], title: 'Backup — Controle Financeiro' });
+      localStorage.setItem(CHAVE + '-envio', new Date().toLocaleString('pt-BR'));
+      renderUltimoEnvio();
+      return;
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  baixar(base + '.json', conteudo, 'application/json');
+  avisar('Este navegador não permite compartilhar arquivos diretamente.\nO backup foi baixado: envie-o para o outro aparelho por e-mail, WhatsApp ou Drive.');
+}
+function renderUltimoEnvio() {
+  const quando = localStorage.getItem(CHAVE + '-envio');
+  $('#ultimoEnvio').textContent = quando ? `Último backup enviado deste aparelho: ${quando}` : '';
+}
+$('#compartilhar').addEventListener('click', compartilharBackup);
+
+// junta os dados de outro aparelho com os deste, sem duplicar
+function mesclarDados(bruto) {
+  const outro = migrar(bruto);
+  const res = { novos: 0, atualizados: 0, removidos: 0, contas: 0 };
+  const excl = new Set([...dados.excluidos, ...outro.excluidos]);
+
+  // contas: mesma id, mesmo número do OFX ou mesmo nome e tipo = mesma conta
+  const mapa = {};
+  outro.contas.forEach(c => {
+    if (excl.has(c.id)) return;
+    const local = conta(c.id) || dados.contas.find(x =>
+      (c.ofxId && x.ofxId === c.ofxId) || (normalizar(x.nome) === normalizar(c.nome) && x.tipo === c.tipo));
+    if (local) {
+      mapa[c.id] = local.id;
+      ['ofxId', 'limite', 'diaFechamento', 'diaVencimento'].forEach(k => { if (local[k] == null && c[k] != null) local[k] = c[k]; });
+      if (!local.saldoInicial && c.saldoInicial) local.saldoInicial = c.saldoInicial;
+    } else {
+      dados.contas.push(structuredClone(c));
+      mapa[c.id] = c.id;
+      res.contas++;
+    }
+  });
+
+  // lançamentos: mesmo id (fica o mais recente), mesmo FITID do banco ou idênticos = repetido
+  const porId = new Map(dados.transacoes.map(t => [t.id, t]));
+  const fitids = new Set(dados.transacoes.map(t => t.fitid).filter(Boolean));
+  const assin = t => `${t.conta}|${t.tipo}|${t.sentido || ''}|${t.data}|${t.valor}|${normalizar(t.descricao)}`;
+  const assinaturas = new Set(dados.transacoes.map(assin));
+  outro.transacoes.forEach(o => {
+    if (excl.has(o.id)) return;
+    const t = structuredClone(o);
+    t.conta = mapa[t.conta] || t.conta;
+    if (t.contraparte) t.contraparte = mapa[t.contraparte] || t.contraparte;
+    const local = porId.get(t.id);
+    if (local) {
+      if ((t.modificado || 0) > (local.modificado || 0)) {
+        Object.keys(local).forEach(k => delete local[k]);
+        Object.assign(local, t);
+        res.atualizados++;
+      }
+      return;
+    }
+    if ((t.fitid && fitids.has(t.fitid)) || assinaturas.has(assin(t))) return;
+    dados.transacoes.push(t);
+    porId.set(t.id, t);
+    if (t.fitid) fitids.add(t.fitid);
+    assinaturas.add(assin(t));
+    res.novos++;
+  });
+
+  // aplica exclusões feitas em qualquer um dos aparelhos
+  const antes = dados.transacoes.length;
+  dados.transacoes = dados.transacoes.filter(t => !excl.has(t.id));
+  res.removidos = antes - dados.transacoes.length;
+  dados.contas = dados.contas.filter(c => !excl.has(c.id));
+
+  // categorias, orçamentos e metas: acrescenta o que falta
+  Object.keys(outro.categorias).forEach(tp => {
+    dados.categorias[tp] ||= [];
+    outro.categorias[tp].forEach(c => { if (!dados.categorias[tp].includes(c)) dados.categorias[tp].push(c); });
+  });
+  Object.entries(outro.orcamentos).forEach(([k, v]) => { if (!(k in dados.orcamentos)) dados.orcamentos[k] = v; });
+  outro.metas.forEach(m => { if (!dados.metas.some(x => x.id === m.id)) dados.metas.push(structuredClone(m)); });
+  dados.metas = dados.metas.filter(m => !excl.has(m.id));
+
+  dados.excluidos = [...excl];
+  dados = migrar(dados);
+  return res;
+}
+
+$('#mesclar').addEventListener('change', async e => {
+  const arq = e.target.files[0];
+  e.target.value = '';
+  if (!arq) return;
+  let outro;
+  try {
+    outro = JSON.parse(await arq.text());
+    if (!Array.isArray(outro.transacoes)) throw new Error('formato');
+  } catch { return avisar('Arquivo inválido. Escolha um backup gerado por este app.'); }
+  if (!await perguntar(`Mesclar o backup (${outro.transacoes.length} lançamentos) com os dados deste aparelho?\nNada daqui será apagado, exceto o que foi excluído no outro aparelho.`, 'Mesclar')) return;
+  const r = mesclarDados(outro);
+  salvar();
+  avisar(`Mesclagem concluída:\n• ${r.novos} lançamento(s) novo(s)\n• ${r.atualizados} atualizado(s)\n• ${r.removidos} removido(s) (excluídos no outro aparelho)\n• ${r.contas} conta(s) nova(s)`);
+});
 
 $('#exportarCsv').addEventListener('click', () => {
   const nomeTipo = t => t.tipo === 'transferencia' ? `transferência (${t.sentido === 'entrada' ? 'entrada' : 'saída'})` : t.tipo;
@@ -1172,6 +1295,7 @@ $('#apagarTudo').addEventListener('click', async () => {
 });
 
 mostrarCamposCartao();
+renderUltimoEnvio();
 render();
 
 // Instalação como app (PWA) e funcionamento offline

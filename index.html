@@ -236,12 +236,27 @@
     <!-- DADOS -->
     <section id="config" class="secao">
       <div class="painel-box">
-        <h2>Backup dos dados</h2>
-        <p class="dica">Os dados ficam salvos apenas neste navegador. Faça backups periodicamente.</p>
+        <h2>Sincronizar entre aparelhos</h2>
+        <p class="dica">Os dados ficam salvos só neste aparelho. Para deixar celular e computador iguais:</p>
+        <ol class="passos">
+          <li>No aparelho <b>A</b>, toque em <b>Enviar backup</b> e mande o arquivo para você mesmo (WhatsApp, e-mail, Drive…).</li>
+          <li>No aparelho <b>B</b>, toque em <b>Mesclar backup</b> e escolha esse arquivo.</li>
+          <li>Repita no sentido inverso (B → A) para os dois ficarem iguais.</li>
+        </ol>
+        <p class="dica">Mesclar não apaga nada deste aparelho e ignora lançamentos repetidos. O que foi excluído no outro aparelho também é excluído aqui.</p>
         <div class="acoes">
-          <button id="exportar" class="primario">Exportar backup (JSON)</button>
+          <button id="compartilhar" class="primario">Enviar backup</button>
+          <label class="botao primario">Mesclar backup<input type="file" id="mesclar" hidden></label>
+        </div>
+        <p class="dica" id="ultimoEnvio"></p>
+      </div>
+      <div class="painel-box">
+        <h2>Backup e restauração</h2>
+        <p class="dica">Faça backups periodicamente. "Restaurar" <b>substitui</b> todos os dados deste aparelho pelos do arquivo.</p>
+        <div class="acoes">
+          <button id="exportar">Baixar backup (arquivo)</button>
           <button id="exportarCsv">Exportar lançamentos (CSV)</button>
-          <label class="botao">Importar backup<input type="file" id="importar" accept=".json" hidden></label>
+          <label class="botao">Restaurar backup<input type="file" id="importar" hidden></label>
           <button id="apagarTudo" class="perigo">Apagar todos os dados</button>
         </div>
       </div>

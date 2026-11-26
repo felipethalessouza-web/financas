@@ -135,6 +135,8 @@ td small.sub { display: block; color: var(--suave); font-size: .78rem; margin-to
 .aviso { color: var(--alerta); font-weight: 600; }
 p.aviso { margin: 0; }
 
+.passos { margin: 0 0 10px; padding-left: 20px; font-size: .9rem; line-height: 1.5; }
+
 /* Janela de confirmação */
 dialog {
   border: 1px solid var(--borda); border-radius: 12px; padding: 20px;
